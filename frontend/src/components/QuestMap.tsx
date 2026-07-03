@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import type { Quest } from '../hooks/useQuests'
 import { formatTokenAmount } from '../utils/wallet'
 
@@ -8,52 +10,132 @@ interface Props {
   selectedQuest: Quest | null
 }
 
+const DEFAULT_CENTER: [number, number] = [40.7484, -73.9857]
+const DEFAULT_ZOOM = 13
+
 export default function QuestMap({ quests, onSelectQuest, selectedQuest }: Props) {
+  const mapRef = useRef<HTMLDivElement>(null)
+  const mapInstanceRef = useRef<L.Map | null>(null)
+  const markersRef = useRef<Map<number, L.Marker>>(new Map())
   const [isExpanded, setIsExpanded] = useState(false)
+  const [mapReady, setMapReady] = useState(false)
+
+  useEffect(() => {
+    if (!mapRef.current || mapInstanceRef.current) return
+
+    const map = L.map(mapRef.current).setView(DEFAULT_CENTER, DEFAULT_ZOOM)
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 19,
+    }).addTo(map)
+
+    mapInstanceRef.current = map
+    setMapReady(true)
+
+    setTimeout(() => {
+      map.invalidateSize()
+    }, 100)
+
+    return () => {
+      map.remove()
+      mapInstanceRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!mapInstanceRef.current) return
+    mapInstanceRef.current.invalidateSize()
+  }, [isExpanded])
+
+  useEffect(() => {
+    const map = mapInstanceRef.current
+    if (!map) return
+
+    markersRef.current.forEach((marker) => marker.remove())
+    markersRef.current.clear()
+
+    quests.forEach((quest) => {
+      const lat = quest.lat_e7 / 1e7
+      const lng = quest.lng_e7 / 1e7
+      const isSelected = selectedQuest?.id === quest.id
+
+      const color = isSelected ? '#16a34a' : quest.active ? '#3E63DD' : '#9CA3AF'
+
+      const icon = L.divIcon({
+        className: 'custom-quest-marker',
+        html: `<div style="
+          width: 24px; height: 24px;
+          background: ${color};
+          border: 3px solid white;
+          border-radius: 50%;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+          ${isSelected ? 'transform: scale(1.3);' : ''}
+        "></div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+      })
+
+      const marker = L.marker([lat, lng], { icon })
+        .addTo(map)
+        .bindPopup(`
+          <div style="font-family: system-ui, sans-serif; min-width: 180px;">
+            <strong style="font-size: 14px;">${quest.title}</strong>
+            <p style="margin: 4px 0; font-size: 12px; color: #666;">${quest.description.slice(0, 80)}...</p>
+            <div style="display: flex; justify-content: space-between; font-size: 12px; margin-top: 6px;">
+              <span style="color: #16a34a; font-weight: 600;">${formatTokenAmount(quest.reward_amount)} GEO</span>
+              <span style="color: #999;">${quest.total_claims} claims</span>
+            </div>
+          </div>
+        `)
+
+      marker.on('click', () => {
+        onSelectQuest(quest)
+      })
+
+      markersRef.current.set(quest.id, marker)
+    })
+  }, [quests, selectedQuest, onSelectQuest])
+
+  useEffect(() => {
+    const map = mapInstanceRef.current
+    if (!map || !selectedQuest) return
+
+    const lat = selectedQuest.lat_e7 / 1e7
+    const lng = selectedQuest.lng_e7 / 1e7
+    map.setView([lat, lng], map.getZoom() < 15 ? 15 : map.getZoom(), {
+      animate: true,
+    })
+  }, [selectedQuest])
 
   return (
     <div className="relative">
       <div
-        className={`bg-gray-200 rounded-xl overflow-hidden transition-all duration-300 ${
-          isExpanded ? 'h-[60vh]' : 'h-[40vh] sm:h-[50vh]'
+        ref={mapRef}
+        className={`rounded-xl overflow-hidden transition-all duration-300 bg-gray-200 ${
+          isExpanded ? 'h-[70vh]' : 'h-[40vh] sm:h-[50vh]'
         }`}
-      >
-        <div className="w-full h-full flex items-center justify-center bg-geo-50">
-          <div className="text-center p-8">
-            <div className="w-16 h-16 bg-geo-200 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-geo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </div>
-            <p className="text-gray-600 font-medium mb-2">Quest Map</p>
-            <p className="text-sm text-gray-500 mb-4">
-              {quests.length} active quests in your area
-            </p>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {quests.slice(0, 5).map((q) => (
-                <button
-                  key={q.id}
-                  onClick={() => onSelectQuest(q)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                    selectedQuest?.id === q.id
-                      ? 'bg-geo-600 text-white'
-                      : 'bg-white text-gray-700 border border-gray-200 hover:border-geo-300'
-                  }`}
-                >
-                  {q.title.length > 20 ? q.title.slice(0, 20) + '...' : q.title}
-                </button>
-              ))}
-            </div>
-          </div>
+        style={{ minHeight: 300 }}
+      />
+      {!mapReady && (
+        <div className="absolute inset-0 flex items-center justify-center bg-geo-50 rounded-xl">
+          <svg className="animate-spin h-8 w-8 text-geo-600" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
         </div>
+      )}
+      <div className="absolute top-3 right-3 flex gap-2">
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="bg-white rounded-lg shadow px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900"
+        >
+          {isExpanded ? 'Shrink' : 'Expand'}
+        </button>
       </div>
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="absolute top-3 right-3 bg-white rounded-lg shadow px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900"
-      >
-        {isExpanded ? 'Shrink' : 'Expand'}
-      </button>
+      <div className="absolute bottom-3 left-3 bg-white/90 rounded-lg shadow px-3 py-1.5 text-xs text-gray-500">
+        {quests.length} quests on map
+      </div>
     </div>
   )
 }
