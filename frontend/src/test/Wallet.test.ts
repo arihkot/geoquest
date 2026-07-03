@@ -3,12 +3,12 @@ import { shortenAddress, isValidStellarAddress, formatTokenAmount } from '../uti
 
 describe('Wallet Utils', () => {
   it('shortens Stellar addresses correctly', () => {
-    const addr = 'GD2ALL3NOT4ADMIN5VALIDKEY1234567890ABCDEFGHIJKLMNOP'
-    expect(shortenAddress(addr)).toBe('GD2ALL...KLMNOP')
+    const addr = 'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3YMFSHON76K2FA3MZKL567R'
+    expect(shortenAddress(addr)).toBe('GBRPYH...567R')
   })
 
   it('validates Stellar public key format', () => {
-    expect(isValidStellarAddress('GD2ALL3NOT4ADMIN5VALIDKEY1234567890ABCDEFGHIJKLMNOP')).toBe(true)
+    expect(isValidStellarAddress('GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3YMFSHON76K2FA3MZKL567R')).toBe(true)
     expect(isValidStellarAddress('invalid')).toBe(false)
     expect(isValidStellarAddress('')).toBe(false)
   })

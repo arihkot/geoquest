@@ -57,8 +57,8 @@ describe('Quest List', () => {
         onSelect={() => {}}
       />
     )
-    expect(screen.getByText('10.00 GEO', { exact: false })).toBeInTheDocument()
-    expect(screen.getByText('5.00 GEO', { exact: false })).toBeInTheDocument()
+    expect(screen.getByText('100.00', { exact: false })).toBeInTheDocument()
+    expect(screen.getByText('50.00', { exact: false })).toBeInTheDocument()
   })
 
   it('shows empty state when no quests', () => {
