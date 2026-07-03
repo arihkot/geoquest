@@ -1,0 +1,11 @@
+name = "geoquest-verification-api"
+main = "src/index.ts"
+compatibility_date = "2024-07-25"
+
+[env.preview]
+name = "geoquest-verification-api-preview"
+
+[[kv_namespaces]]
+binding = "VERIFICATION_DATA"
+id = "placeholder"
+preview_id = "placeholder"
