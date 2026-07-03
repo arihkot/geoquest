@@ -1,4 +1,5 @@
 [workspace]
+resolver = "2"
 members = [
     "quest_registry",
     "reward_token",
@@ -7,16 +8,15 @@ members = [
     "bounty_escrow",
 ]
 
-[workspace.package]
-version = "0.1.0"
-edition = "2021"
-
 [workspace.dependencies]
-soroban-sdk = "22.0.0"
-soroban-token-sdk = "22.0.0"
+soroban-sdk = "25"
 
 [profile.release]
-opt-level = "s"
-lto = true
+opt-level = "z"
+overflow-checks = true
+debug = 0
+strip = "symbols"
+debug-assertions = false
+panic = "abort"
 codegen-units = 1
-strip = true
+lto = true

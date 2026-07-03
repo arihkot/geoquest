@@ -65,7 +65,7 @@ impl RewardToken {
             .set(&RewardTokenKey::Balances(to.clone()), &new_balance);
         env.storage()
             .persistent()
-            .bump(&RewardTokenKey::Balances(to), BALANCE_BUMP, BALANCE_BUMP);
+            .extend_ttl(&RewardTokenKey::Balances(to), BALANCE_BUMP, BALANCE_BUMP);
 
         let total: i128 = env
             .storage()
@@ -129,7 +129,7 @@ impl RewardToken {
             .set(&RewardTokenKey::Balances(to.clone()), &(to_balance + amount));
         env.storage()
             .persistent()
-            .bump(&RewardTokenKey::Balances(to), BALANCE_BUMP, BALANCE_BUMP);
+            .extend_ttl(&RewardTokenKey::Balances(to), BALANCE_BUMP, BALANCE_BUMP);
     }
 
     pub fn balance_of(env: Env, account: Address) -> i128 {

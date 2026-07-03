@@ -1,6 +1,6 @@
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, contracttype, Address, BytesN, Env, Map, Vec};
+use soroban_sdk::{contract, contractimpl, contracttype, Address, Bytes, BytesN, Env, Map, Vec};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -12,24 +12,12 @@ pub struct Attestation {
 }
 
 #[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ClaimRecord {
-    pub user: Address,
-    pub quest_id: u64,
-    pub claimed_at_ledger: u32,
-    pub tx_ref: BytesN<32>,
-}
-
-#[contracttype]
 pub enum ClaimManagerKey {
-    Admin,
-    OracleKey(BytesN<32>),
-    Claimed((Address, u64)),
+    Claimed(Address, u64),
     ClaimsMap,
+    AdminKey,
+    OracleKey,
 }
-
-const ADMIN_KEY: &str = "claim_manager_admin";
-const ORACLE_KEY_SLOT: &str = "oracle_pubkey";
 
 #[contract]
 pub struct ClaimManager;
@@ -37,40 +25,48 @@ pub struct ClaimManager;
 #[contractimpl]
 impl ClaimManager {
     pub fn initialize(env: Env, admin: Address, oracle_public_key: BytesN<32>) {
-        if env.storage().instance().has(&ADMIN_KEY) {
+        if env.storage().instance().has(&ClaimManagerKey::AdminKey) {
             panic!("already initialized");
         }
-        env.storage().instance().set(&ADMIN_KEY, &admin);
         env.storage()
             .instance()
-            .set(&ORACLE_KEY_SLOT, &oracle_public_key);
+            .set(&ClaimManagerKey::AdminKey, &admin);
         env.storage()
             .instance()
-            .set(&ClaimManagerKey::ClaimsMap, &Map::<u64, Vec<Address>>::new(&env));
+            .set(&ClaimManagerKey::OracleKey, &oracle_public_key);
+
+        let empty_map: Map<u64, Vec<Address>> = Map::new(&env);
+        env.storage()
+            .instance()
+            .set(&ClaimManagerKey::ClaimsMap, &empty_map);
     }
 
-    pub fn set_oracle_key(env: Env, admin: Address, new_oracle_key: BytesN<32>) {
+    pub fn set_oracle_key(env: Env, admin: Address, new_key: BytesN<32>) {
         admin.require_auth();
-        let stored_admin: Address = env.storage().instance().get(&ADMIN_KEY).unwrap();
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&ClaimManagerKey::AdminKey)
+            .unwrap();
         if stored_admin != admin {
             panic!("unauthorized");
         }
         env.storage()
             .instance()
-            .set(&ORACLE_KEY_SLOT, &new_oracle_key);
+            .set(&ClaimManagerKey::OracleKey, &new_key);
     }
 
     pub fn get_oracle_key(env: Env) -> BytesN<32> {
         env.storage()
             .instance()
-            .get(&ORACLE_KEY_SLOT)
+            .get(&ClaimManagerKey::OracleKey)
             .unwrap()
     }
 
     pub fn is_claimed(env: Env, user: Address, quest_id: u64) -> bool {
         env.storage()
             .instance()
-            .get(&ClaimManagerKey::Claimed((user, quest_id)))
+            .get(&ClaimManagerKey::Claimed(user, quest_id))
             .unwrap_or(false)
     }
 
@@ -84,25 +80,22 @@ impl ClaimManager {
         let oracle_key: BytesN<32> = env
             .storage()
             .instance()
-            .get(&ORACLE_KEY_SLOT)
+            .get(&ClaimManagerKey::OracleKey)
             .unwrap();
 
-        let attestation_bytes = Self::serialize_attestation(&env, &attestation);
-
-        env.crypto().ed25519_verify(
-            &oracle_key,
-            &attestation_bytes.into(),
-            &signature,
-        );
+        // Verify oracle signature over attestation location_hash
+        let loc_hash = soroban_sdk::Bytes::from_slice(&env, &attestation.location_hash.to_array());
+        env.crypto()
+            .ed25519_verify(&oracle_key, &loc_hash, &signature);
 
         if attestation.user != user || attestation.quest_id != quest_id {
-            panic!("attestation does not match claimed user/quest");
+            panic!("attestation does not match user/quest");
         }
 
         let already_claimed: bool = env
             .storage()
             .instance()
-            .get(&ClaimManagerKey::Claimed((user.clone(), quest_id)))
+            .get(&ClaimManagerKey::Claimed(user.clone(), quest_id))
             .unwrap_or(false);
 
         if already_claimed {
@@ -110,17 +103,9 @@ impl ClaimManager {
         }
 
         env.storage().instance().set(
-            &ClaimManagerKey::Claimed((user.clone(), quest_id)),
+            &ClaimManagerKey::Claimed(user.clone(), quest_id),
             &true,
         );
-
-        let ledger = env.ledger().sequence();
-        let claim = ClaimRecord {
-            user: user.clone(),
-            quest_id,
-            claimed_at_ledger: ledger,
-            tx_ref: attestation.location_hash.clone(),
-        };
 
         let mut claim_map: Map<u64, Vec<Address>> = env
             .storage()
@@ -129,38 +114,11 @@ impl ClaimManager {
             .unwrap_or(Map::new(&env));
 
         let mut users = claim_map.get(quest_id).unwrap_or(Vec::new(&env));
-        users.push_back(user);
+        users.push_back(user.clone());
         claim_map.set(quest_id, users);
         env.storage()
             .instance()
             .set(&ClaimManagerKey::ClaimsMap, &claim_map);
-
-        env.events()
-            .publish(("claim_manager", "RewardClaimed"), (quest_id, user));
-    }
-
-    fn serialize_attestation(env: &Env, attestation: &Attestation) -> Vec<u8> {
-        let mut data = Vec::new(env);
-        let user_bytes = attestation.user.to_string();
-        data.extend_from_array(&user_bytes.into());
-        data.push_back((attestation.quest_id >> 56) as u8);
-        data.push_back(((attestation.quest_id >> 48) & 0xFF) as u8);
-        data.push_back(((attestation.quest_id >> 40) & 0xFF) as u8);
-        data.push_back(((attestation.quest_id >> 32) & 0xFF) as u8);
-        data.push_back(((attestation.quest_id >> 24) & 0xFF) as u8);
-        data.push_back(((attestation.quest_id >> 16) & 0xFF) as u8);
-        data.push_back(((attestation.quest_id >> 8) & 0xFF) as u8);
-        data.push_back((attestation.quest_id & 0xFF) as u8);
-        data.push_back((attestation.timestamp >> 56) as u8);
-        data.push_back(((attestation.timestamp >> 48) & 0xFF) as u8);
-        data.push_back(((attestation.timestamp >> 40) & 0xFF) as u8);
-        data.push_back(((attestation.timestamp >> 32) & 0xFF) as u8);
-        data.push_back(((attestation.timestamp >> 24) & 0xFF) as u8);
-        data.push_back(((attestation.timestamp >> 16) & 0xFF) as u8);
-        data.push_back(((attestation.timestamp >> 8) & 0xFF) as u8);
-        data.push_back((attestation.timestamp & 0xFF) as u8);
-        data.extend_from_array(&attestation.location_hash.to_array().as_slice().into());
-        data
     }
 
     pub fn get_claimers(env: Env, quest_id: u64) -> Vec<Address> {
@@ -177,14 +135,13 @@ impl ClaimManager {
 mod test {
     use super::*;
     use soroban_sdk::testutils::Address as _;
-    use soroban_sdk::{vec, Bytes, Env};
+    use soroban_sdk::Env;
 
     #[test]
     fn test_record_claim_rejects_replay() {
         let env = Env::default();
         let admin = Address::generate(&env);
         let user = Address::generate(&env);
-        let oracle_privkey = BytesN::<32>::from_array(&env, &[1u8; 32]);
         let oracle_pubkey = BytesN::<32>::from_array(&env, &[2u8; 32]);
 
         let contract_id = env.register(ClaimManager, ());
