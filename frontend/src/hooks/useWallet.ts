@@ -1,56 +1,59 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react'
+import { isConnected, getAddress, requestAccess } from '@stellar/freighter-api'
 
 export function useWallet() {
-  const [publicKey, setPublicKey] = useState<string | null>(null);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [publicKey, setPublicKey] = useState<string | null>(null)
+  const [isConnecting, setIsConnecting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    checkConnection();
-  }, []);
+    checkConnection()
+  }, [])
 
   const checkConnection = useCallback(async () => {
     try {
-      if (typeof window !== 'undefined' && (window as any).freighterApi) {
-        const freighter = (window as any).freighterApi;
-        const pubKey = await freighter.getPublicKey();
-        if (pubKey) {
-          setPublicKey(pubKey);
+      const connected = await isConnected()
+      if (connected) {
+        const addressResult = await getAddress()
+        if (addressResult && addressResult.address) {
+          setPublicKey(addressResult.address)
         }
       }
     } catch {
       // Freighter not available
     }
-  }, []);
+  }, [])
 
   const connect = useCallback(async () => {
-    setIsConnecting(true);
-    setError(null);
+    setIsConnecting(true)
+    setError(null)
     try {
-      if (typeof window === 'undefined' || !(window as any).freighterApi) {
+      const connected = await isConnected()
+      if (!connected) {
         throw new Error(
-          'Freighter wallet is not installed. Please install the Freighter browser extension.'
-        );
+          'Freighter wallet is not installed. Please install the Freighter browser extension from https://www.freighter.app/'
+        )
       }
-      const freighter = (window as any).freighterApi;
-      const pubKey = await freighter.getPublicKey();
-      if (!pubKey) {
-        throw new Error('Failed to get public key from Freighter');
+
+      await requestAccess()
+      const addressResult = await getAddress()
+      if (!addressResult || !addressResult.address) {
+        throw new Error('Failed to get address from Freighter. Please ensure your wallet is unlocked.')
       }
-      setPublicKey(pubKey);
-      return pubKey;
+      setPublicKey(addressResult.address)
+      return addressResult.address
     } catch (e: any) {
-      setError(e.message || 'Failed to connect wallet');
-      return null;
+      setError(e.message || 'Failed to connect wallet')
+      return null
     } finally {
-      setIsConnecting(false);
+      setIsConnecting(false)
     }
-  }, []);
+  }, [])
 
   const disconnect = useCallback(() => {
-    setPublicKey(null);
-    setError(null);
-  }, []);
+    setPublicKey(null)
+    setError(null)
+  }, [])
 
   return {
     publicKey,
@@ -59,5 +62,5 @@ export function useWallet() {
     connect,
     disconnect,
     isConnected: !!publicKey,
-  };
+  }
 }

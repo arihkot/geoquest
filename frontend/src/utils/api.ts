@@ -7,6 +7,8 @@ export interface AttestationRequest {
   longitude: number;
   accuracy: number;
   timestamp: number;
+  deviceFingerprint?: string;
+  sessionHeuristics?: Record<string, unknown>;
 }
 
 export interface AttestationResponse {
