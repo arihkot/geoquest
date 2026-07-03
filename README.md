@@ -14,15 +14,20 @@ Frontend (React/Vite) ──→ Verification API (Cloudflare Worker) ──→ S
 
 ### Deployed Contracts (Testnet)
 
-| Contract | Address | Purpose |
-|---|---|---|
-| `quest_registry` | TBD | Quest CRUD, metadata storage |
-| `reward_token` | TBD | GEO reward token (SAC-based) |
-| `claim_manager` | TBD | Oracle attestation verification, double-claim prevention |
-| `impact_vault` | TBD | Staking, yield distribution from treasury |
-| `bounty_escrow` | TBD | Holds quest budgets, releases on valid claims |
+| Contract | Address | 
+|---|---|
+| `quest_registry` | [`CDAXVU...MO5NOL`](https://stellar.expert/explorer/testnet/contract/CDAXVUCN7A2PAOD6R6CXXRXZ5VVMEVMNLJUE6FWCD2ASZO7NDTMO5NOL) |
+| `reward_token` | [`CAFY4Y...5H53KS`](https://stellar.expert/explorer/testnet/contract/CAFY4YVXRHJN67ZTK25WYKPCBXOYW5O5NRCRQ2IAEK2VPNLH3Q5H53KS) |
+| `claim_manager` | [`CBDKLA...WDY5WCUE`](https://stellar.expert/explorer/testnet/contract/CBDKLAQTC7RO7S5S4752GQK5DEJT4FDXBAW7VFSVEGOCJI45WDY5WCUE) |
+| `impact_vault` | [`CAZ67A...LYP34X46T`](https://stellar.expert/explorer/testnet/contract/CAZ67A6KY5MTSZCQ3P543VQXROJCGG5ZPOJ3GWYE5EXDNYYLYP34X46T) |
+| `bounty_escrow` | [`CCO7DL...4NTYV7M`](https://stellar.expert/explorer/testnet/contract/CCO7DLICTIKE3MP7IBQ6TP5DFWGVDIWMS37B562SZLA6SGUGZ4NTYV7M) |
 
-See [DEPLOYMENTS.md](./DEPLOYMENTS.md) for addresses and deployment instructions.
+**Live testnet activity:**
+- [Mint 100 GEO](https://stellar.expert/explorer/testnet/tx/0ff491ba89d0c90d152c7000aeee3f8e4ccb6a9b25613db7112056f2958269ec)
+- [Stake 50 GEO](https://stellar.expert/explorer/testnet/tx/68b4098841e602ce947a61e83d568427a82a9ed0d6f20346d522ad94d1fbb907)
+- [Create Quest #0](https://stellar.expert/explorer/testnet/tx/2c3ff60ed6a87fa9e4f41d7bf20d4e35d4036e15fa6a77a30fdb63c82839ad6a)
+
+Full deployment details in [DEPLOYMENTS.md](./DEPLOYMENTS.md).
 
 ## Quick Start
 
