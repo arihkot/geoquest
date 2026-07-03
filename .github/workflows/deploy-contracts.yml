@@ -1,0 +1,77 @@
+name: Deploy Contracts (Manual)
+on:
+  workflow_dispatch:
+    inputs:
+      network:
+        description: 'Stellar network'
+        required: true
+        type: choice
+        options:
+          - testnet
+          - mainnet
+        default: 'testnet'
+      source_account:
+        description: 'Source account name/alias for deployment'
+        required: true
+        type: string
+        default: 'admin'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          target: wasm32v1-none
+
+      - name: Install stellar-cli
+        run: cargo install --locked stellar-cli
+
+      - name: Build contracts
+        run: stellar contract build
+
+      - name: Deploy quest_registry
+        run: |
+          stellar contract deploy \
+            --wasm target/wasm32v1-none/release/quest_registry.wasm \
+            --source-account ${{ github.event.inputs.source_account }} \
+            --network ${{ github.event.inputs.network }} \
+            --alias quest_registry
+
+      - name: Deploy reward_token
+        run: |
+          stellar contract deploy \
+            --wasm target/wasm32v1-none/release/reward_token.wasm \
+            --source-account ${{ github.event.inputs.source_account }} \
+            --network ${{ github.event.inputs.network }} \
+            --alias reward_token
+
+      - name: Deploy claim_manager
+        run: |
+          stellar contract deploy \
+            --wasm target/wasm32v1-none/release/claim_manager.wasm \
+            --source-account ${{ github.event.inputs.source_account }} \
+            --network ${{ github.event.inputs.network }} \
+            --alias claim_manager
+
+      - name: Deploy impact_vault
+        run: |
+          stellar contract deploy \
+            --wasm target/wasm32v1-none/release/impact_vault.wasm \
+            --source-account ${{ github.event.inputs.source_account }} \
+            --network ${{ github.event.inputs.network }} \
+            --alias impact_vault
+
+      - name: Deploy bounty_escrow
+        run: |
+          stellar contract deploy \
+            --wasm target/wasm32v1-none/release/bounty_escrow.wasm \
+            --source-account ${{ github.event.inputs.source_account }} \
+            --network ${{ github.event.inputs.network }} \
+            --alias bounty_escrow
