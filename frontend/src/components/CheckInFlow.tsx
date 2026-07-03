@@ -4,6 +4,7 @@ import { useWallet } from '../hooks/useWallet'
 import { requestAttestation } from '../utils/api'
 import { STELLAR_EXPERT_TX_URL } from '../utils/constants'
 import { formatTokenAmount } from '../utils/wallet'
+import { getSessionHeuristics, getDeviceFingerprint } from '../utils/device'
 
 interface Props {
   quest: Quest
@@ -47,6 +48,8 @@ export default function CheckInFlow({ quest, onClose }: Props) {
           longitude: position.coords.longitude,
           accuracy: position.coords.accuracy,
           timestamp: position.timestamp,
+          deviceFingerprint: getDeviceFingerprint(),
+          sessionHeuristics: getSessionHeuristics(),
         })
 
         if (!attestRes.attested) {
