@@ -23,6 +23,8 @@
 
 ## Frontend Deployment
 
+Deployed at: **https://geoquest-5al.pages.dev** (Cloudflare Pages)
+
 ```bash
 cd frontend
 npm run build
