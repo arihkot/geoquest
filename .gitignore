@@ -9,3 +9,5 @@ target/
 .env.*.local
 .wrangler/
 .dev/
+*.tsbuildinfo
+package-lock.json
