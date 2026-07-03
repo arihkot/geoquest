@@ -1,0 +1,16 @@
+{
+  "name": "GeoQuest",
+  "short_name": "GeoQuest",
+  "description": "Visit-to-Earn Eco-Tourism & Impact Bounties on Stellar",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9fafb",
+  "theme_color": "#16a34a",
+  "icons": [
+    {
+      "src": "/geoquest-icon.svg",
+      "sizes": "64x64",
+      "type": "image/svg+xml"
+    }
+  ]
+}
