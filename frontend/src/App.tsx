@@ -1,17 +1,13 @@
 import { Routes, Route } from 'react-router-dom'
 import Header from './components/Header'
+import MobileBottomNav from './components/MobileBottomNav'
 import HomePage from './pages/HomePage'
 import AdminPage from './pages/AdminPage'
 import ProfilePage from './pages/ProfilePage'
-import { useWallet } from './hooks/useWallet'
-import { ADMIN_WALLETS } from './utils/constants'
 
 function App() {
-  const { publicKey } = useWallet()
-  const isAdmin = publicKey && ADMIN_WALLETS.includes(publicKey)
-
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col pb-16 sm:pb-0">
       <Header />
       <main className="flex-1">
         <Routes>
@@ -20,7 +16,7 @@ function App() {
           <Route path="/profile" element={<ProfilePage />} />
         </Routes>
       </main>
-      <footer className="bg-white border-t border-gray-200 py-4">
+      <footer className="hidden sm:block bg-white border-t border-gray-200 py-4">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-gray-500">
             <span>GeoQuest - Visit-to-Earn Eco-Tourism on Stellar</span>
@@ -40,6 +36,7 @@ function App() {
           </div>
         </div>
       </footer>
+      <MobileBottomNav />
     </div>
   )
 }
