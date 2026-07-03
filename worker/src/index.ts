@@ -7,12 +7,14 @@ const MAX_CHECKIN_RADIUS_M = 500
 const MIN_ACCURACY_M = 200
 const RATE_LIMIT_WINDOW_MS = 60000
 const MAX_CHECKS_PER_WINDOW = 5
+const MAX_FINGERPRINTS_PER_USER_MS = 86400000 // 24h
+const MAX_UNIQUE_FINGERPRINTS = 5
 
 const DEMO_QUESTS = [
   {
     id: 0,
     title: 'Riverside Park Cleanup Zone',
-    description: 'Visit Riverside Park and help keep it clean. Check in at any designated cleanup area.',
+    description: 'Visit Riverside Park and help keep it clean.',
     lat_e7: 407483000,
     lng_e7: -739850000,
     radius_m: 50,
@@ -27,7 +29,7 @@ const DEMO_QUESTS = [
   {
     id: 1,
     title: 'Central Park Eco Walk',
-    description: 'Explore Central Park and learn about urban biodiversity. Check in at 5 waypoints.',
+    description: 'Explore Central Park and learn about urban biodiversity.',
     lat_e7: 407827000,
     lng_e7: -739662000,
     radius_m: 100,
@@ -42,7 +44,7 @@ const DEMO_QUESTS = [
   {
     id: 2,
     title: 'Brooklyn Bridge Walking Tour',
-    description: 'Walk across the iconic Brooklyn Bridge and discover its history.',
+    description: 'Walk across the Brooklyn Bridge and discover its history.',
     lat_e7: 407061000,
     lng_e7: -739969000,
     radius_m: 200,
@@ -109,6 +111,93 @@ function formatTimeUTC(): string {
   return new Date().toISOString()
 }
 
+async function checkDeviceFingerprint(env: Env, userAddress: string, fingerprint: string): Promise<{ allowed: boolean; reason?: string }> {
+  if (!fingerprint) return { allowed: true }
+
+  const fpKey = `fp:users:${userAddress}`
+  const existing = await env.VERIFICATION_DATA.get(fpKey).catch(() => null)
+  const now = Date.now()
+
+  if (existing) {
+    const data = JSON.parse(existing) as { fingerprints: string[]; firstSeen: number }
+    const uniqueFps = new Set(data.fingerprints)
+    uniqueFps.add(fingerprint)
+
+    if (uniqueFps.size > MAX_UNIQUE_FINGERPRINTS) {
+      return { allowed: false, reason: 'Too many unique device fingerprints for this wallet' }
+    }
+
+    await env.VERIFICATION_DATA.put(fpKey, JSON.stringify({
+      fingerprints: Array.from(uniqueFps).slice(-10),
+      firstSeen: data.firstSeen,
+    }), { expirationTtl: 86400 }).catch(() => {})
+  } else {
+    await env.VERIFICATION_DATA.put(fpKey, JSON.stringify({
+      fingerprints: [fingerprint],
+      firstSeen: now,
+    }), { expirationTtl: 86400 }).catch(() => {})
+  }
+
+  // Check emulator/simulator
+  const isEmulatorKey = `fp:emu:${fingerprint}`
+  const emuCheck = await env.VERIFICATION_DATA.get(isEmulatorKey).catch(() => null)
+  if (emuCheck) {
+    return { allowed: false, reason: 'Device flagged as emulator/simulator' }
+  }
+
+  return { allowed: true }
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+async function signAttestation(payload: string, env: Env): Promise<{ signature: string; publicKey: string }> {
+  const privateKeyBase64 = env.ORACLE_PRIVATE_KEY
+  
+  if (!privateKeyBase64) {
+    // Demo fallback: generate deterministic signature for testnet
+    const encoder = new TextEncoder()
+    const data = encoder.encode(payload)
+    const hashBytes = await crypto.subtle.digest('SHA-256', data)
+    const hashHex = bytesToHex(new Uint8Array(hashBytes))
+    return {
+      signature: `demo:${hashHex.slice(0, 64)}`,
+      publicKey: 'demo_oracle_pubkey_placeholder',
+    }
+  }
+
+  try {
+    const keyBytes = Uint8Array.from(atob(privateKeyBase64), (c) => c.charCodeAt(0))
+    const key = await crypto.subtle.importKey(
+      'raw',
+      keyBytes.slice(0, 32),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    )
+
+    const encoder = new TextEncoder()
+    const data = encoder.encode(payload)
+    const sigBuffer = await crypto.subtle.sign('HMAC', key, data)
+    const sigBytes = new Uint8Array(sigBuffer)
+
+    const pubKeyBytes = keyBytes.slice(32, 64)
+    return {
+      signature: bytesToHex(sigBytes),
+      publicKey: bytesToHex(pubKeyBytes),
+    }
+  } catch {
+    const encoder = new TextEncoder()
+    const data = encoder.encode(payload)
+    const hashBytes = await crypto.subtle.digest('SHA-256', data)
+    return {
+      signature: 'demo:' + bytesToHex(new Uint8Array(hashBytes)).slice(0, 64),
+      publicKey: 'demo_oracle_pubkey',
+    }
+  }
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const corsHeaders = {
@@ -132,12 +221,10 @@ export default {
       })
 
     try {
-      // GET /api/quests
       if (path === '/api/quests' && request.method === 'GET') {
         return responseBody({ quests: DEMO_QUESTS })
       }
 
-      // POST /api/attest
       if (path === '/api/attest' && request.method === 'POST') {
         const body: {
           userAddress: string
@@ -146,14 +233,19 @@ export default {
           longitude: number
           accuracy: number
           timestamp: number
+          deviceFingerprint?: string
+          sessionHeuristics?: Record<string, unknown>
         } = await request.json()
 
-        // Validate inputs
         if (!body.userAddress || body.questId === undefined || body.latitude === undefined || body.longitude === undefined) {
           return responseBody({ attested: false, error: 'Missing required fields' }, 400)
         }
 
-        // Find the quest
+        // Validate wallet address format
+        if (!/^G[A-Z2-7]{55}$/.test(body.userAddress)) {
+          return responseBody({ attested: false, error: 'Invalid Stellar wallet address' }, 400)
+        }
+
         const quest = DEMO_QUESTS.find((q) => q.id === body.questId)
         if (!quest) {
           return responseBody({ attested: false, error: 'Quest not found' }, 404)
@@ -163,7 +255,25 @@ export default {
           return responseBody({ attested: false, error: 'Quest is paused' }, 400)
         }
 
-        // Anti-spoof: check GPS accuracy
+        // Device fingerprint anti-Sybil check
+        if (body.deviceFingerprint) {
+          const fpCheck = await checkDeviceFingerprint(env, body.userAddress, body.deviceFingerprint)
+          if (!fpCheck.allowed) {
+            return responseBody({ attested: false, error: fpCheck.reason }, 403)
+          }
+        }
+
+        // Emulator check from heuristics
+        if (body.sessionHeuristics?.isEmulator) {
+          await env.VERIFICATION_DATA.put(
+            `fp:emu:${body.deviceFingerprint}`,
+            '1',
+            { expirationTtl: 86400 }
+          ).catch(() => {})
+          return responseBody({ attested: false, error: 'Emulated devices are not supported' }, 403)
+        }
+
+        // GPS accuracy check
         if (body.accuracy > MIN_ACCURACY_M) {
           return responseBody({
             attested: false,
@@ -171,7 +281,7 @@ export default {
           }, 400)
         }
 
-        // Check distance to quest geofence
+        // Geofence distance check
         const questLat = quest.lat_e7 / 1e7
         const questLng = quest.lng_e7 / 1e7
         const distance = calculateDistance(body.latitude, body.longitude, questLat, questLng)
@@ -179,11 +289,11 @@ export default {
         if (distance > quest.radius_m) {
           return responseBody({
             attested: false,
-            error: `You are ${Math.round(distance)}m away from this quest. Please get closer (within ${quest.radius_m}m).`,
+            error: `You are ${Math.round(distance)}m away. Get within ${quest.radius_m}m.`,
           }, 400)
         }
 
-        // Anti-spoof: check timestamp freshness
+        // Timestamp freshness
         const nowMs = Date.now()
         const timeDiff = Math.abs(nowMs - body.timestamp)
         if (timeDiff > 120000) {
@@ -193,7 +303,7 @@ export default {
           }, 400)
         }
 
-        // Rate limiting per user address (simple KV-based)
+        // Rate limiting per user
         const rateKey = `rate:${body.userAddress}`
         const rateData = await env.VERIFICATION_DATA.get(rateKey).catch(() => null)
         const checks: number[] = rateData ? JSON.parse(rateData) : []
@@ -211,29 +321,31 @@ export default {
           expirationTtl: 300,
         }).catch(() => {})
 
-        // Generate attestation payload and sign
         const attestationPayload = JSON.stringify({
           user: body.userAddress,
           quest_id: body.questId,
           timestamp: body.timestamp,
           location_hash: `${quest.lat_e7}:${quest.lng_e7}`,
           attested_at: formatTimeUTC(),
+          device_fp: body.deviceFingerprint || 'none',
         })
 
-        const signature = 'demo_signature_' + Buffer.from(attestationPayload).toString('base64').slice(0, 64)
+        const oracleSig = await signAttestation(attestationPayload, env)
 
-        console.log(`[${formatTimeUTC()}] Attested: user=${body.userAddress.slice(0, 10)} quest=${body.questId} dist=${Math.round(distance)}m acc=${Math.round(body.accuracy)}m`)
+        console.log(
+          `[${formatTimeUTC()}] ATTESTED: user=${body.userAddress.slice(0, 10)} quest=${body.questId} dist=${Math.round(distance)}m acc=${Math.round(body.accuracy)}m fp=${body.deviceFingerprint?.slice(0, 12) || 'none'}`
+        )
 
         return responseBody({
           attested: true,
           attestationPayload,
-          signature,
+          signature: oracleSig.signature,
+          oraclePublicKey: oracleSig.publicKey,
           distance_m: Math.round(distance),
           quest_title: quest.title,
         })
       }
 
-      // GET /api/health
       if (path === '/api/health') {
         return responseBody({
           status: 'ok',
