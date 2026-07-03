@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import type { Quest } from '../hooks/useQuests'
-import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../utils/constants'
+import { formatTokenAmount } from '../utils/wallet'
 
 interface Props {
   quests: Quest[]
@@ -9,13 +9,11 @@ interface Props {
 }
 
 export default function QuestMap({ quests, onSelectQuest, selectedQuest }: Props) {
-  const mapRef = useRef<HTMLDivElement>(null)
   const [isExpanded, setIsExpanded] = useState(false)
 
   return (
     <div className="relative">
       <div
-        ref={mapRef}
         className={`bg-gray-200 rounded-xl overflow-hidden transition-all duration-300 ${
           isExpanded ? 'h-[60vh]' : 'h-[40vh] sm:h-[50vh]'
         }`}
