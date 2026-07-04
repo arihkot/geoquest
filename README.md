@@ -37,6 +37,9 @@ https://docs.google.com/forms/d/e/1FAIpQLSdlWq1o723XapPdiOq9h1viVGqY-x-c7yRv9ntw
 ## Feedback Responses
 https://docs.google.com/spreadsheets/d/1Rk1Y8P_xq9-qSYhwaq-YUSMxRH7gw3XF-LJf1OIm2EY/edit?usp=sharing
 
+## Pitch Deck
+https://drive.google.com/file/d/12xZ7UQlibDpvYiNCD6OzOfGS9O1mi3_t/view?usp=sharing
+
 ## Architecture
 
 ```
