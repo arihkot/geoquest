@@ -337,24 +337,7 @@ For deliverables #3 and #4 (deployed contract address + a transaction hash from 
 
 ---
 
-## 14. Testnet Demo Data (transparent seeding, not concealment)
-
-To make the demo meaningful for reviewers, it's normal and expected to populate Testnet with a batch of realistic check-ins rather than a single test transaction. Handled the right way, this is standard practice — the key is transparency, not disguise:
-
-- **Keep the seed script in the repo** (e.g., `scripts/seed_testnet.ts`), committed and documented, so anyone reviewing the project can see exactly how demo users and check-ins were generated. Hiding or gitignoring this script — and specifically trying to make seeded activity indistinguishable from organic use — would misrepresent the project's real traction to whoever is evaluating it (a grant committee, hackathon judges, a tourism board), which isn't something I'll help design.
-- **Label the data.** A `README` or in-app "Testnet Demo Mode" banner noting "N demo wallets were seeded to illustrate the flow" keeps the demo honest while still looking populated and lively.
-- **Make the interactions realistic in *pattern*, not in *disguised origin*.** It's fine — good practice, even — to generate:
-  - 50+ distinct funded Testnet keypairs (via Friendbot).
-  - Staggered timestamps across several simulated days rather than one burst.
-  - A realistic mix of quests visited, some staking behavior, occasional failed/out-of-geofence attempts.
-  - Varied reward amounts and a few users with repeat visits/streaks.
-- This gives you a rich, lively-looking Testnet state for a demo video or judge walkthrough, while the seed script itself stays visible and honest about what it did.
-
-If you want, I can write `scripts/seed_testnet.ts` (or a Rust equivalent) that generates ~50-55 funded Testnet identities and drives them through `create_quest`/`claim_reward`/`stake` calls with staggered timestamps — committed to the repo and documented in the README.
-
----
-
-## 15. Git & Commit Strategy (20+ meaningful commits)
+## 14. Git & Commit Strategy (20+ meaningful commits)
 
 Structure commits around real milestones rather than padding — a reviewer can tell the difference. Suggested natural breakdown that organically exceeds 20 commits on a project this scope:
 
@@ -381,12 +364,11 @@ Structure commits around real milestones rather than padding — a reviewer can 
 21. `ci: add frontend GitHub Actions pipeline`
 22. `ci: add contracts GitHub Actions pipeline`
 23. `chore: deploy frontend to Cloudflare Pages`
-24. `docs: seed_testnet script + README testnet demo notes`
-25. `fix: various responsive/edge-case fixes from QA pass`
+24. `fix: various responsive/edge-case fixes from QA pass`
 
 ---
 
-## 16. Roadmap
+## 15. Roadmap
 
 | Phase | Scope | Target |
 |---|---|---|
@@ -394,12 +376,12 @@ Structure commits around real milestones rather than padding — a reviewer can 
 | Phase 1 | Core claim flow end-to-end on Testnet | Week 2-3 |
 | Phase 2 | Staking/yield vault, admin console | Week 4 |
 | Phase 3 | CI/CD, full test coverage, mobile QA pass | Week 5 |
-| Phase 4 | Testnet demo data, deployment docs, Mainnet readiness review | Week 6 |
+| Phase 4 | Deployment docs, Mainnet readiness review | Week 6 |
 | Phase 5 (post-PRD) | Security audit, Mainnet deploy, pilot with a real municipal partner | TBD |
 
 ---
 
-## 17. Open Questions / Risks
+## 16. Open Questions / Risks
 
 - **Geofence spoofing**: GPS can be spoofed on rooted/jailbroken devices. Mitigate with QR/NFC co-signing at partner locations for higher-value quests; treat pure-GPS quests as lower-trust/lower-reward tiers.
 - **Yield source**: Where does "yield-bearing" actually originate — a real DeFi position (e.g., a yield-bearing stablecoin reserve) or a fixed emission schedule funded by the bond issuer? This needs a decision before `impact_vault` economics are finalized, since it affects both contract design and any regulatory characterization of the reward token.

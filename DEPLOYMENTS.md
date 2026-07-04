@@ -38,3 +38,4 @@ cd worker
 wrangler deploy
 ```
 
+
