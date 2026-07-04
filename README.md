@@ -4,6 +4,34 @@
 
 GeoQuest is a phygital platform where users physically travel to real-world locations — parks, landmarks, eco-certified businesses — check in via geolocation-verified proof, and receive on-chain rewards. Rewards are yield-bearing local assets funded by municipal green bonds or tourism-board treasuries.
 
+## Deployed URL
+https://geoquest-5al.pages.dev/
+
+## Demo
+<img width="1582" height="1035" alt="Screenshot 2026-07-04 at 12 46 18 PM" src="https://github.com/user-attachments/assets/bd2e1bad-1bd5-45c3-8293-5be8783626ff" />
+<img width="1582" height="1035" alt="Screenshot 2026-07-04 at 12 46 08 PM" src="https://github.com/user-attachments/assets/26a88599-397d-4691-8d84-aaeffca3c8c6" />
+<img width="1582" height="1035" alt="Screenshot 2026-07-04 at 12 45 58 PM" src="https://github.com/user-attachments/assets/fc585bbd-bdbd-41c0-9a7a-2479685015d4" />
+<img width="1582" height="1035" alt="Screenshot 2026-07-04 at 12 45 34 PM" src="https://github.com/user-attachments/assets/3edaf80f-c507-46b1-a9a4-245a61f7d727" />
+<img width="472" height="744" alt="Screenshot 2026-07-04 at 12 45 08 PM" src="https://github.com/user-attachments/assets/311e0fc5-14c3-427e-bf2f-f248cba0d830" />
+<img width="1582" height="1035" alt="Screenshot 2026-07-04 at 12 44 41 PM" src="https://github.com/user-attachments/assets/33ebbd96-d4cc-47d6-8991-e397a10b25b8" />
+
+## Mobile Responsive
+<img width="337" height="725" alt="Screenshot 2026-07-04 at 12 51 10 PM" src="https://github.com/user-attachments/assets/841c65de-de4f-4ff5-8450-4acc3c98098d" />
+<img width="337" height="725" alt="Screenshot 2026-07-04 at 12 51 04 PM" src="https://github.com/user-attachments/assets/66d12228-a7d3-4967-9721-face4e384a0a" />
+<img width="337" height="725" alt="Screenshot 2026-07-04 at 12 50 57 PM" src="https://github.com/user-attachments/assets/0e97b82e-6f0f-4425-b4e6-63449cc6f409" />
+<img width="337" height="725" alt="Screenshot 2026-07-04 at 12 50 45 PM" src="https://github.com/user-attachments/assets/1fb48a52-8c72-4fd7-b678-caba88cb0db0" />
+<img width="337" height="725" alt="Screenshot 2026-07-04 at 12 50 37 PM" src="https://github.com/user-attachments/assets/32b85f84-01a5-41b9-ad29-bb9d582d8750" />
+
+## Demo Video
+https://drive.google.com/file/d/1-0Zz936myHK5V8nY1-0LuUpi72w-tQ5q/view?usp=sharing
+
+## CI/CD
+<img width="1582" height="1035" alt="Screenshot 2026-07-04 at 12 59 12 PM" src="https://github.com/user-attachments/assets/177ff890-4074-4e48-84cb-ceb158b4eccf" />
+
+## Tests
+<img width="445" height="352" alt="image" src="https://github.com/user-attachments/assets/90e9b9c3-0fa4-4a89-9052-13fd36ea4d31" />
+
+
 ## Architecture
 
 ```
