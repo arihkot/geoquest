@@ -31,6 +31,11 @@ https://drive.google.com/file/d/1-0Zz936myHK5V8nY1-0LuUpi72w-tQ5q/view?usp=shari
 ## Tests
 <img width="445" height="352" alt="image" src="https://github.com/user-attachments/assets/90e9b9c3-0fa4-4a89-9052-13fd36ea4d31" />
 
+## Feedback Form
+https://docs.google.com/forms/d/e/1FAIpQLSdlWq1o723XapPdiOq9h1viVGqY-x-c7yRv9ntwJrZpYq7sEg/viewform?usp=publish-editor
+
+## Feedback Responses
+https://docs.google.com/spreadsheets/d/1Rk1Y8P_xq9-qSYhwaq-YUSMxRH7gw3XF-LJf1OIm2EY/edit?usp=sharing
 
 ## Architecture
 
