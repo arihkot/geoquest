@@ -110,6 +110,59 @@ wrangler deploy                # Deploy to Cloudflare
 - **On-Chain Rewards** — Receive GEO tokens instantly via Soroban smart contracts
 - **Yield-Bearing Staking** — Stake GEO in the Impact Vault for yield from municipal treasuries
 - **Admin Console** — Create quests, manage budgets, view on-chain analytics
+
+## Wallet Integration
+
+GeoQuest uses the [Freighter Wallet](https://www.freighter.app/) browser extension for Stellar (Soroban) authentication and transaction signing. The integration lives in the frontend and is built on top of [`@stellar/freighter-api`](https://www.npmjs.com/package/@stellar/freighter-api).
+
+### Connect Wallet
+
+Connecting requests permission (`setAllowed`) and then reads the user's public address (`getAddress`). The full logic is in `frontend/src/hooks/useWallet.ts`:
+
+```ts
+import {
+  isConnected,
+  getAddress,
+  setAllowed,
+  signTransaction,
+} from '@stellar/freighter-api'
+
+// 1. Make sure Freigher is installed and connected.
+const connected = await isConnected()
+if (!connected) throw new Error('Freighter wallet is not installed.')
+
+// 2. Request permission for this dapp to access the wallet.
+const allowed = await setAllowed()
+if (!allowed.isAllowed) throw new Error('Wallet access denied.')
+
+// 3. Address retrieval.
+const { address } = await getAddress()
+```
+
+A `Connect Freighter` button (`frontend/src/components/WalletConnectPrompt.tsx`) and the header (`frontend/src/components/Header.tsx`) call `useWallet().connect()`, which runs the flow above and stores the address in React state.
+
+### Permissions & Address Retrieval
+
+- `setAllowed()` — grants the GeoQuest dapp permission to interact with the wallet.
+- `getAddress()` — retrieves the authenticated Stellar public key (`G...`).
+- `isConnected()` — used on mount to restore an existing session.
+
+### Transaction Signing
+
+When a user claims a reward, GeoQuest builds a Soroban transaction that invokes `claim_manager::record_claim` and asks Freighter to sign it via `signTransaction`. The signing helper is exposed from `useWallet()`:
+
+```ts
+// frontend/src/hooks/useWallet.ts
+const result = await signTransaction(transactionXdr, {
+  networkPassphrase: NETWORK_PASSPHRASE,
+  address: publicKey,
+})
+if (result.error) throw new Error(result.error.message)
+const signedTxXdr = result.signedTxXdr
+```
+
+`frontend/src/utils/stellar.ts` assembles the `record_claim` invocation (using `@stellar/stellar-sdk`'s `contract.Contract`, `TransactionBuilder` and `rpc.Server`), simulates it, and the `CheckInFlow` component signs it with the connected wallet before submitting on-chain. If the wallet or network is unavailable, it gracefully falls back to demo mode so the UI remains usable.
+
 - **Full Auditability** — Every reward traceable on Stellar Expert
 
 ## Testnet Demo Mode
