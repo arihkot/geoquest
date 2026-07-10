@@ -11,3 +11,4 @@ target/
 .dev/
 *.tsbuildinfo
 package-lock.json
+!frontend/package-lock.json
