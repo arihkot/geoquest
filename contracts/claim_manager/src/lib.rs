@@ -70,6 +70,16 @@ impl ClaimManager {
             .unwrap_or(false)
     }
 
+    /// Records a verified quest completion as a claim.
+    ///
+    /// This entrypoint is invoked from the frontend after the user connects their
+    /// Stellar wallet via the Freighter browser extension. The flow is:
+    ///   1. Frontend calls `setAllowed()` to grant the dapp wallet permissions.
+    ///   2. Frontend calls `getAddress()` to read the claimer's `G...` public key.
+    ///   3. Frontend builds a Soroban transaction for `record_claim` and calls
+    ///      `signTransaction()` so the wallet signs it with the claimer's key.
+    ///   4. The signed transaction is submitted on-chain; `user` is the address
+    ///      that authorized (signed) the call.
     pub fn record_claim(
         env: Env,
         user: Address,
