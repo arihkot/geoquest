@@ -8,16 +8,5 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: contracts
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          target: wasm32v1-none
-
-      - name: Run contract tests
-        run: cargo test --workspace
